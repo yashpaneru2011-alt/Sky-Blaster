@@ -3,20 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Flappy Bird Ultimate</title>
+<title>Flappy Bird Mobile Pro</title>
+
 <style>
 body{
 margin:0;
 overflow:hidden;
+background:#70c5ce;
 }
+
 canvas{
-position:fixed;
-top:0;
-left:0;
-width:100vw;
-height:100vh;
 display:block;
-touch-action:none;
 }
 </style>
 </head>
@@ -28,6 +25,7 @@ touch-action:none;
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
+// Full Height Canvas (Phone Ready)
 function resizeCanvas(){
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
@@ -35,83 +33,15 @@ canvas.height = window.innerHeight;
 resizeCanvas();
 window.addEventListener("resize", resizeCanvas);
 
-/* ---------------- SOUNDS ---------------- */
-const flapSound = new Audio("https://www.soundjay.com/buttons/sounds/button-16.mp3");
-const scoreSound = new Audio("https://www.soundjay.com/buttons/sounds/button-4.mp3");
-const hitSound = new Audio("https://www.soundjay.com/buttons/sounds/button-10.mp3");
-
-/* Background Music */
-const bgMusic = new Audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3");
-bgMusic.loop = true;
-bgMusic.volume = 0.3;
-
-/* ---------------- DAY / NIGHT SYSTEM ---------------- */
-let dayTime = true;
-let dayNightTimer = 0;
-
-/* ---------------- PARALLAX CLOUDS ---------------- */
-let backClouds = [];
-let frontClouds = [];
-
-function createCloud(layer){
-return {
-x: canvas.width,
-y: Math.random()*canvas.height*0.5,
-size: Math.random()*40 + 40,
-speed: layer === "back" ? 0.5 : 1.2
-};
-}
-
-function updateCloudLayer(layerArray, type){
-if(Math.random()<0.02){
-layerArray.push(createCloud(type));
-}
-layerArray.forEach(c=>{
-c.x -= c.speed;
-drawCloud(c);
-});
-return layerArray.filter(c=>c.x>-200);
-}
-
-function drawCloud(cloud){
-ctx.fillStyle="white";
-ctx.beginPath();
-ctx.arc(cloud.x, cloud.y, cloud.size, 0, Math.PI*2);
-ctx.arc(cloud.x+cloud.size, cloud.y+10, cloud.size*0.8, 0, Math.PI*2);
-ctx.arc(cloud.x-cloud.size, cloud.y+10, cloud.size*0.8, 0, Math.PI*2);
-ctx.fill();
-}
-
-/* ---------------- MOUNTAINS ---------------- */
-let mountainOffset = 0;
-
-function drawMountains(){
-mountainOffset -= 0.3;
-if(mountainOffset < -canvas.width) mountainOffset = 0;
-
-ctx.fillStyle = dayTime ? "#556B2F" : "#2F4F4F";
-
-for(let i=0;i<2;i++){
-ctx.beginPath();
-ctx.moveTo(mountainOffset + i*canvas.width, canvas.height);
-ctx.lineTo(mountainOffset + 200 + i*canvas.width, canvas.height-150);
-ctx.lineTo(mountainOffset + 400 + i*canvas.width, canvas.height);
-ctx.closePath();
-ctx.fill();
-}
-}
-
-/* ---------------- GAME SETTINGS ---------------- */
 const gravity = 0.5;
-const jump = -10;
-const pipeWidth = 70;
+const jump = -8;
+const pipeWidth = 65;
 
 let pipeGap = 180;
 let pipeSpeed = 3;
 let level = 1;
 
 let state = "start";
-let bestScore = localStorage.getItem("best") || 0;
 
 let bird = {
 x: 100,
@@ -136,38 +66,22 @@ level = 1;
 pipeSpeed = 3;
 pipeGap = 180;
 state = "playing";
-bgMusic.play();
 }
 
-/* ---------------- SKY BACKGROUND ---------------- */
-function drawSky(){
-let gradient = ctx.createLinearGradient(0,0,0,canvas.height);
-
-if(dayTime){
-gradient.addColorStop(0,"#70c5ce");
-gradient.addColorStop(1,"#ffffff");
-}else{
-gradient.addColorStop(0,"#0f2027");
-gradient.addColorStop(1,"#203a43");
-}
-
-ctx.fillStyle = gradient;
-ctx.fillRect(0,0,canvas.width,canvas.height);
-}
-
-/* ---------------- BIRD ---------------- */
 function drawBird(){
 ctx.save();
 ctx.translate(bird.x, bird.y);
 ctx.rotate(bird.rotation);
+
 ctx.beginPath();
 ctx.arc(0, 0, bird.radius, 0, Math.PI*2);
 ctx.fillStyle="yellow";
 ctx.fill();
+ctx.stroke();
+
 ctx.restore();
 }
 
-/* ---------------- PIPES ---------------- */
 function drawPipes(){
 ctx.fillStyle="green";
 pipes.forEach(pipe=>{
@@ -177,7 +91,7 @@ ctx.fillRect(pipe.x,pipe.top+pipeGap,pipeWidth,canvas.height);
 }
 
 function updatePipes(){
-if(frame%90===0){
+if(frame%85===0){
 let topHeight=Math.random()*(canvas.height-300)+50;
 pipes.push({x:canvas.width,top:topHeight,passed:false});
 }
@@ -187,12 +101,13 @@ pipe.x-=pipeSpeed;
 
 if(!pipe.passed && pipe.x+pipeWidth<bird.x){
 score++;
-scoreSound.play();
 pipe.passed=true;
+
+// 🔥 Level system
 if(score%5===0){
 level++;
-pipeSpeed+=0.5;
-pipeGap-=10;
+pipeSpeed+=0.5;     // ⚡ speed increase
+pipeGap-=8;         // harder gap
 }
 }
 
@@ -202,59 +117,59 @@ bird.x-bird.radius < pipe.x+pipeWidth &&
 (bird.y-bird.radius < pipe.top ||
 bird.y+bird.radius > pipe.top+pipeGap)
 ){
-hitSound.play();
 state="gameover";
-bgMusic.pause();
 }
 });
 
 pipes=pipes.filter(pipe=>pipe.x+pipeWidth>0);
 }
 
-/* ---------------- BIRD PHYSICS ---------------- */
 function updateBird(){
 bird.velocity+=gravity;
 bird.y+=bird.velocity;
 
+// 🦅 Smooth rotation
 if(bird.velocity<0){
-bird.rotation=-0.3;
+bird.rotation=-0.4;
 }else{
-bird.rotation=Math.min(bird.rotation+0.03,0.6);
+bird.rotation=Math.min(bird.rotation+0.04,0.7);
 }
 
 if(bird.y+bird.radius>canvas.height || bird.y-bird.radius<0){
-hitSound.play();
 state="gameover";
-bgMusic.pause();
 }
 }
 
-/* ---------------- UI ---------------- */
 function drawUI(){
-ctx.fillStyle= dayTime ? "#000" : "#fff";
-ctx.font="20px Arial";
+ctx.fillStyle="#000";
+ctx.font="22px Arial";
 ctx.fillText("Score: "+score,20,40);
-ctx.fillText("Level: "+level,20,70);
+ctx.fillText("Level: "+level,20,75);
 }
 
-/* ---------------- LOOP ---------------- */
+function drawStart(){
+ctx.fillStyle="#000";
+ctx.font="30px Arial";
+ctx.fillText("Flappy Bird",canvas.width/2-90,canvas.height/2);
+ctx.font="20px Arial";
+ctx.fillText("Tap to Start",canvas.width/2-60,canvas.height/2+40);
+}
+
+function drawGameOver(){
+ctx.fillStyle="#000";
+ctx.font="32px Arial";
+ctx.fillText("Game Over",canvas.width/2-90,canvas.height/2);
+ctx.font="20px Arial";
+ctx.fillText("Tap to Restart",canvas.width/2-80,canvas.height/2+40);
+}
+
 function gameLoop(){
 ctx.clearRect(0,0,canvas.width,canvas.height);
 
-drawSky();
-
-/* Day/Night toggle every 20 seconds */
-dayNightTimer++;
-if(dayNightTimer>1200){
-dayTime=!dayTime;
-dayNightTimer=0;
+if(state==="start"){
+drawStart();
 }
-
-backClouds = updateCloudLayer(backClouds,"back");
-drawMountains();
-frontClouds = updateCloudLayer(frontClouds,"front");
-
-if(state==="playing"){
+else if(state==="playing"){
 updateBird();
 updatePipes();
 drawPipes();
@@ -262,15 +177,9 @@ drawBird();
 drawUI();
 frame++;
 }
-else if(state==="start"){
-ctx.fillStyle="#000";
-ctx.font="30px Arial";
-ctx.fillText("Tap to Start",canvas.width/2-90,canvas.height/2);
-}
 else if(state==="gameover"){
-ctx.fillStyle="red";
-ctx.font="30px Arial";
-ctx.fillText("Game Over",canvas.width/2-80,canvas.height/2);
+drawGameOver();
+drawUI();
 }
 
 requestAnimationFrame(gameLoop);
@@ -282,17 +191,17 @@ resetGame();
 }
 else if(state==="playing"){
 bird.velocity=jump;
-flapSound.play();
 }
 else if(state==="gameover"){
 state="start";
 }
 }
 
-window.addEventListener("touchstart", e=>{
+// 📱 Smooth touch
+window.addEventListener("touchstart", function(e){
 e.preventDefault();
 flap();
-},{passive:false});
+}, {passive:false});
 
 window.addEventListener("click", flap);
 document.addEventListener("keydown", e=>{
@@ -301,5 +210,6 @@ if(e.code==="Space") flap();
 
 gameLoop();
 </script>
+
 </body>
 </html>
