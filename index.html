@@ -3,197 +3,176 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Flappy Bird Ultimate FX</title>
+<title>Flappy Bird Ultimate</title>
 <style>
-body{margin:0;overflow:hidden;}
+body{
+margin:0;
+overflow:hidden;
+}
 canvas{
 position:fixed;
-top:0;left:0;
-width:100vw;height:100vh;
+top:0;
+left:0;
+width:100vw;
+height:100vh;
 display:block;
 touch-action:none;
 }
 </style>
 </head>
 <body>
+
 <canvas id="game"></canvas>
 
 <script>
-const canvas=document.getElementById("game");
-const ctx=canvas.getContext("2d");
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
 
 function resizeCanvas(){
-canvas.width=window.innerWidth;
-canvas.height=window.innerHeight;
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 }
 resizeCanvas();
-window.addEventListener("resize",resizeCanvas);
+window.addEventListener("resize", resizeCanvas);
 
-/* ---------- SOUND ---------- */
-const flapSound=new Audio("https://www.soundjay.com/buttons/sounds/button-16.mp3");
-const scoreSound=new Audio("https://www.soundjay.com/buttons/sounds/button-4.mp3");
-const hitSound=new Audio("https://www.soundjay.com/buttons/sounds/button-10.mp3");
+/* ---------------- SOUNDS ---------------- */
+const flapSound = new Audio("https://www.soundjay.com/buttons/sounds/button-16.mp3");
+const scoreSound = new Audio("https://www.soundjay.com/buttons/sounds/button-4.mp3");
+const hitSound = new Audio("https://www.soundjay.com/buttons/sounds/button-10.mp3");
 
-/* ---------- BACKGROUND MUSIC ---------- */
-const bgMusic=new Audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3");
-bgMusic.loop=true;
-bgMusic.volume=0.25;
+/* Background Music */
+const bgMusic = new Audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3");
+bgMusic.loop = true;
+bgMusic.volume = 0.3;
 
-/* ---------- DAY NIGHT ---------- */
-let dayTime=true;
-let dayNightTimer=0;
+/* ---------------- DAY / NIGHT SYSTEM ---------------- */
+let dayTime = true;
+let dayNightTimer = 0;
 
-/* ---------- STARFIELD ---------- */
-let stars=[];
-function createStars(){
-stars=[];
-for(let i=0;i<120;i++){
-stars.push({
-x:Math.random()*canvas.width,
-y:Math.random()*canvas.height,
-size:Math.random()*2
+/* ---------------- PARALLAX CLOUDS ---------------- */
+let backClouds = [];
+let frontClouds = [];
+
+function createCloud(layer){
+return {
+x: canvas.width,
+y: Math.random()*canvas.height*0.5,
+size: Math.random()*40 + 40,
+speed: layer === "back" ? 0.5 : 1.2
+};
+}
+
+function updateCloudLayer(layerArray, type){
+if(Math.random()<0.02){
+layerArray.push(createCloud(type));
+}
+layerArray.forEach(c=>{
+c.x -= c.speed;
+drawCloud(c);
 });
-}
-}
-createStars();
-
-function drawStars(){
-ctx.fillStyle="white";
-stars.forEach(s=>{
-ctx.fillRect(s.x,s.y,s.size,s.size);
-});
+return layerArray.filter(c=>c.x>-200);
 }
 
-/* ---------- FIRE PARTICLES ---------- */
-let particles=[];
-
-function createFire(x,y){
-for(let i=0;i<15;i++){
-particles.push({
-x:x,
-y:y,
-vx:(Math.random()-0.5)*4,
-vy:(Math.random()-1.5)*4,
-size:Math.random()*6+2,
-life:40
-});
-}
-}
-
-function updateParticles(){
-particles.forEach(p=>{
-p.x+=p.vx;
-p.y+=p.vy;
-p.life--;
-p.size*=0.95;
-});
-particles=particles.filter(p=>p.life>0);
-
-particles.forEach(p=>{
-ctx.fillStyle="orange";
-ctx.beginPath();
-ctx.arc(p.x,p.y,p.size,0,Math.PI*2);
-ctx.fill();
-});
-}
-
-/* ---------- PARALLAX CLOUDS ---------- */
-let clouds=[];
-function createCloud(){
-clouds.push({
-x:canvas.width,
-y:Math.random()*canvas.height*0.5,
-size:Math.random()*50+40,
-speed:Math.random()*1+0.5
-});
-}
-
-function updateClouds(){
-if(Math.random()<0.02) createCloud();
-clouds.forEach(c=>{
-c.x-=c.speed;
+function drawCloud(cloud){
 ctx.fillStyle="white";
 ctx.beginPath();
-ctx.arc(c.x,c.y,c.size,0,Math.PI*2);
+ctx.arc(cloud.x, cloud.y, cloud.size, 0, Math.PI*2);
+ctx.arc(cloud.x+cloud.size, cloud.y+10, cloud.size*0.8, 0, Math.PI*2);
+ctx.arc(cloud.x-cloud.size, cloud.y+10, cloud.size*0.8, 0, Math.PI*2);
 ctx.fill();
-});
-clouds=clouds.filter(c=>c.x>-200);
 }
 
-/* ---------- MOUNTAINS ---------- */
-let mountainOffset=0;
+/* ---------------- MOUNTAINS ---------------- */
+let mountainOffset = 0;
+
 function drawMountains(){
-mountainOffset-=0.3;
-if(mountainOffset<-canvas.width) mountainOffset=0;
-ctx.fillStyle=dayTime?"#556B2F":"#2F4F4F";
+mountainOffset -= 0.3;
+if(mountainOffset < -canvas.width) mountainOffset = 0;
+
+ctx.fillStyle = dayTime ? "#556B2F" : "#2F4F4F";
+
 for(let i=0;i<2;i++){
 ctx.beginPath();
-ctx.moveTo(mountainOffset+i*canvas.width,canvas.height);
-ctx.lineTo(mountainOffset+200+i*canvas.width,canvas.height-150);
-ctx.lineTo(mountainOffset+400+i*canvas.width,canvas.height);
+ctx.moveTo(mountainOffset + i*canvas.width, canvas.height);
+ctx.lineTo(mountainOffset + 200 + i*canvas.width, canvas.height-150);
+ctx.lineTo(mountainOffset + 400 + i*canvas.width, canvas.height);
 ctx.closePath();
 ctx.fill();
 }
 }
 
-/* ---------- GAME SETTINGS ---------- */
-const gravity=0.5;
-const jump=-10;
-const pipeWidth=70;
+/* ---------------- GAME SETTINGS ---------------- */
+const gravity = 0.5;
+const jump = -10;
+const pipeWidth = 70;
 
-let pipeGap=180;
-let pipeSpeed=3;
+let pipeGap = 180;
+let pipeSpeed = 3;
+let level = 1;
 
-let state="start";
+let state = "start";
+let bestScore = localStorage.getItem("best") || 0;
 
-let bird={
-x:100,
-y:300,
-radius:20,
-velocity:0
+let bird = {
+x: 100,
+y: 300,
+radius: 20,
+velocity: 0,
+rotation: 0
 };
 
-let pipes=[];
-let frame=0;
-let score=0;
-let displayScore=0; // animated score
+let pipes = [];
+let frame = 0;
+let score = 0;
 
 function resetGame(){
-bird.y=canvas.height/2;
-bird.velocity=0;
-pipes=[];
-score=0;
-displayScore=0;
-frame=0;
-state="playing";
+bird.y = canvas.height/2;
+bird.velocity = 0;
+bird.rotation = 0;
+pipes = [];
+score = 0;
+frame = 0;
+level = 1;
+pipeSpeed = 3;
+pipeGap = 180;
+state = "playing";
 bgMusic.play();
 }
 
+/* ---------------- SKY BACKGROUND ---------------- */
 function drawSky(){
-let g=ctx.createLinearGradient(0,0,0,canvas.height);
+let gradient = ctx.createLinearGradient(0,0,0,canvas.height);
+
 if(dayTime){
-g.addColorStop(0,"#70c5ce");
-g.addColorStop(1,"#ffffff");
+gradient.addColorStop(0,"#70c5ce");
+gradient.addColorStop(1,"#ffffff");
 }else{
-g.addColorStop(0,"#0f2027");
-g.addColorStop(1,"#203a43");
+gradient.addColorStop(0,"#0f2027");
+gradient.addColorStop(1,"#203a43");
 }
-ctx.fillStyle=g;
+
+ctx.fillStyle = gradient;
 ctx.fillRect(0,0,canvas.width,canvas.height);
 }
 
+/* ---------------- BIRD ---------------- */
 function drawBird(){
-ctx.fillStyle="yellow";
+ctx.save();
+ctx.translate(bird.x, bird.y);
+ctx.rotate(bird.rotation);
 ctx.beginPath();
-ctx.arc(bird.x,bird.y,bird.radius,0,Math.PI*2);
+ctx.arc(0, 0, bird.radius, 0, Math.PI*2);
+ctx.fillStyle="yellow";
 ctx.fill();
+ctx.restore();
 }
 
+/* ---------------- PIPES ---------------- */
 function drawPipes(){
 ctx.fillStyle="green";
-pipes.forEach(p=>{
-ctx.fillRect(p.x,0,pipeWidth,p.top);
-ctx.fillRect(p.x,p.top+pipeGap,pipeWidth,canvas.height);
+pipes.forEach(pipe=>{
+ctx.fillRect(pipe.x,0,pipeWidth,pipe.top);
+ctx.fillRect(pipe.x,pipe.top+pipeGap,pipeWidth,canvas.height);
 });
 }
 
@@ -203,76 +182,84 @@ let topHeight=Math.random()*(canvas.height-300)+50;
 pipes.push({x:canvas.width,top:topHeight,passed:false});
 }
 
-pipes.forEach(p=>{
-p.x-=pipeSpeed;
+pipes.forEach(pipe=>{
+pipe.x-=pipeSpeed;
 
-if(!p.passed && p.x+pipeWidth<bird.x){
+if(!pipe.passed && pipe.x+pipeWidth<bird.x){
 score++;
 scoreSound.play();
-createFire(bird.x,bird.y);
-p.passed=true;
+pipe.passed=true;
+if(score%5===0){
+level++;
+pipeSpeed+=0.5;
+pipeGap-=10;
+}
 }
 
 if(
-bird.x+bird.radius>p.x &&
-bird.x-bird.radius<p.x+pipeWidth &&
-(bird.y-bird.radius<p.top ||
-bird.y+bird.radius>p.top+pipeGap)
+bird.x+bird.radius > pipe.x &&
+bird.x-bird.radius < pipe.x+pipeWidth &&
+(bird.y-bird.radius < pipe.top ||
+bird.y+bird.radius > pipe.top+pipeGap)
 ){
 hitSound.play();
-bgMusic.pause();
 state="gameover";
+bgMusic.pause();
 }
 });
 
-pipes=pipes.filter(p=>p.x+pipeWidth>0);
+pipes=pipes.filter(pipe=>pipe.x+pipeWidth>0);
 }
 
+/* ---------------- BIRD PHYSICS ---------------- */
 function updateBird(){
 bird.velocity+=gravity;
 bird.y+=bird.velocity;
 
-if(bird.y+bird.radius>canvas.height ||
-bird.y-bird.radius<0){
+if(bird.velocity<0){
+bird.rotation=-0.3;
+}else{
+bird.rotation=Math.min(bird.rotation+0.03,0.6);
+}
+
+if(bird.y+bird.radius>canvas.height || bird.y-bird.radius<0){
 hitSound.play();
-bgMusic.pause();
 state="gameover";
+bgMusic.pause();
 }
 }
 
-/* Animated Score */
-function drawScore(){
-if(displayScore<score){
-displayScore+=0.2;
-}
-ctx.fillStyle=dayTime?"#000":"#fff";
-ctx.font="30px Arial";
-ctx.fillText(Math.floor(displayScore),canvas.width/2-10,50);
+/* ---------------- UI ---------------- */
+function drawUI(){
+ctx.fillStyle= dayTime ? "#000" : "#fff";
+ctx.font="20px Arial";
+ctx.fillText("Score: "+score,20,40);
+ctx.fillText("Level: "+level,20,70);
 }
 
-/* ---------- LOOP ---------- */
+/* ---------------- LOOP ---------------- */
 function gameLoop(){
 ctx.clearRect(0,0,canvas.width,canvas.height);
 
 drawSky();
 
+/* Day/Night toggle every 20 seconds */
 dayNightTimer++;
 if(dayNightTimer>1200){
 dayTime=!dayTime;
 dayNightTimer=0;
 }
 
-if(!dayTime) drawStars();
-
-updateClouds();
+backClouds = updateCloudLayer(backClouds,"back");
 drawMountains();
+frontClouds = updateCloudLayer(frontClouds,"front");
 
 if(state==="playing"){
 updateBird();
 updatePipes();
 drawPipes();
 drawBird();
-drawScore();
+drawUI();
 frame++;
 }
 else if(state==="start"){
@@ -285,8 +272,6 @@ ctx.fillStyle="red";
 ctx.font="30px Arial";
 ctx.fillText("Game Over",canvas.width/2-80,canvas.height/2);
 }
-
-updateParticles();
 
 requestAnimationFrame(gameLoop);
 }
@@ -304,12 +289,13 @@ state="start";
 }
 }
 
-window.addEventListener("touchstart",e=>{
+window.addEventListener("touchstart", e=>{
 e.preventDefault();
 flap();
 },{passive:false});
-window.addEventListener("click",flap);
-document.addEventListener("keydown",e=>{
+
+window.addEventListener("click", flap);
+document.addEventListener("keydown", e=>{
 if(e.code==="Space") flap();
 });
 
