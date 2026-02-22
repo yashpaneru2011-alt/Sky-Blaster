@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Flappy Bird Mobile Pro</title>
 
 <!-- Google AdSense -->
@@ -13,27 +13,32 @@ crossorigin="anonymous"></script>
 <meta name="google-adsense-account" content="ca-pub-2678799772933573">
 
 <style>
-body{
+*{
 margin:0;
+padding:0;
+box-sizing:border-box;
+}
+
+html, body{
+width:100%;
+height:100dvh;   /* Real mobile height */
 overflow:hidden;
 background:#70c5ce;
 }
 
-canvas{
-display:block;
-position:fixed;
+#game{
+position:absolute;
 top:0;
 left:0;
 }
 
 #ad-container{
-position:fixed;
+position:absolute;
 bottom:0;
 left:0;
 width:100%;
 height:60px;
-background:#ffffff;
-z-index:1000;
+background:#fff;
 }
 </style>
 </head>
@@ -41,14 +46,13 @@ z-index:1000;
 
 <canvas id="game"></canvas>
 
-<!-- Bottom Banner Ad -->
 <div id="ad-container">
-    <ins class="adsbygoogle"
-         style="display:block;width:100%;height:60px"
-         data-ad-client="ca-pub-2678799772933573"
-         data-ad-slot="2076942226"
-         data-ad-format="auto"
-         data-full-width-responsive="true"></ins>
+<ins class="adsbygoogle"
+     style="display:block;width:100%;height:60px"
+     data-ad-client="ca-pub-2678799772933573"
+     data-ad-slot="2076942226"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
 </div>
 
 <script>
@@ -58,10 +62,8 @@ z-index:1000;
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
-
 const AD_HEIGHT = 60;
 
-// Resize Canvas (Mobile Safe)
 function resizeCanvas(){
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight - AD_HEIGHT;
@@ -139,7 +141,7 @@ pipe.passed=true;
 if(score%5===0){
 level++;
 pipeSpeed+=0.5;
-pipeGap-=8;
+pipeGap=Math.max(120, pipeGap-8);
 }
 }
 
