@@ -2,8 +2,8 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Flappy Bird Mobile</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flappy Bird Mobile Pro</title>
 
 <!-- Google AdSense -->
 <script async 
@@ -13,20 +13,14 @@ crossorigin="anonymous"></script>
 <meta name="google-adsense-account" content="ca-pub-2678799772933573">
 
 <style>
-*{
+body{
 margin:0;
-padding:0;
-box-sizing:border-box;
-}
-
-html, body{
-width:100%;
-height:100%;
 overflow:hidden;
 background:#70c5ce;
 }
 
-#game{
+canvas{
+display:block;
 position:fixed;
 top:0;
 left:0;
@@ -38,8 +32,8 @@ bottom:0;
 left:0;
 width:100%;
 height:60px;
-background:#fff;
-z-index:9999;
+background:#ffffff;
+z-index:1000;
 }
 </style>
 </head>
@@ -47,13 +41,14 @@ z-index:9999;
 
 <canvas id="game"></canvas>
 
+<!-- Bottom Banner Ad -->
 <div id="ad-container">
-<ins class="adsbygoogle"
-     style="display:block;width:100%;height:60px"
-     data-ad-client="ca-pub-2678799772933573"
-     data-ad-slot="2076942226"
-     data-ad-format="auto"
-     data-full-width-responsive="true"></ins>
+    <ins class="adsbygoogle"
+         style="display:block;width:100%;height:60px"
+         data-ad-client="ca-pub-2678799772933573"
+         data-ad-slot="2076942226"
+         data-ad-format="auto"
+         data-full-width-responsive="true"></ins>
 </div>
 
 <script>
@@ -66,6 +61,7 @@ const ctx = canvas.getContext("2d");
 
 const AD_HEIGHT = 60;
 
+// Resize Canvas (Mobile Safe)
 function resizeCanvas(){
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight - AD_HEIGHT;
@@ -73,40 +69,50 @@ canvas.height = window.innerHeight - AD_HEIGHT;
 resizeCanvas();
 window.addEventListener("resize", resizeCanvas);
 
-const gravity = 0.6;
-const jump = -10;
-const pipeWidth = 70;
+const gravity = 0.5;
+const jump = -8;
+const pipeWidth = 65;
 
-let pipeGap = 200;
+let pipeGap = 180;
 let pipeSpeed = 3;
+let level = 1;
 let state = "start";
-let frame = 0;
-let score = 0;
 
 let bird = {
-x: 120,
+x: 100,
 y: 300,
 radius: 20,
-velocity: 0
+velocity: 0,
+rotation: 0
 };
 
 let pipes = [];
+let frame = 0;
+let score = 0;
 
 function resetGame(){
 bird.y = canvas.height/2;
 bird.velocity = 0;
+bird.rotation = 0;
 pipes = [];
 score = 0;
 frame = 0;
+level = 1;
+pipeSpeed = 3;
+pipeGap = 180;
 state = "playing";
 }
 
 function drawBird(){
+ctx.save();
+ctx.translate(bird.x, bird.y);
+ctx.rotate(bird.rotation);
 ctx.beginPath();
-ctx.arc(bird.x, bird.y, bird.radius, 0, Math.PI*2);
-ctx.fillStyle = "yellow";
+ctx.arc(0, 0, bird.radius, 0, Math.PI*2);
+ctx.fillStyle="yellow";
 ctx.fill();
 ctx.stroke();
+ctx.restore();
 }
 
 function drawPipes(){
@@ -118,17 +124,23 @@ ctx.fillRect(pipe.x,pipe.top+pipeGap,pipeWidth,canvas.height);
 }
 
 function updatePipes(){
-if(frame % 90 === 0){
-let topHeight = Math.random()*(canvas.height-300)+80;
+if(frame%85===0){
+let topHeight=Math.random()*(canvas.height-300)+50;
 pipes.push({x:canvas.width,top:topHeight,passed:false});
 }
 
 pipes.forEach(pipe=>{
-pipe.x -= pipeSpeed;
+pipe.x-=pipeSpeed;
 
-if(!pipe.passed && pipe.x+pipeWidth < bird.x){
+if(!pipe.passed && pipe.x+pipeWidth<bird.x){
 score++;
-pipe.passed = true;
+pipe.passed=true;
+
+if(score%5===0){
+level++;
+pipeSpeed+=0.5;
+pipeGap-=8;
+}
 }
 
 if(
@@ -141,44 +153,64 @@ state="gameover";
 }
 });
 
-pipes = pipes.filter(pipe=>pipe.x+pipeWidth>0);
+pipes=pipes.filter(pipe=>pipe.x+pipeWidth>0);
 }
 
 function updateBird(){
-bird.velocity += gravity;
-bird.y += bird.velocity;
+bird.velocity+=gravity;
+bird.y+=bird.velocity;
 
-if(bird.y+bird.radius > canvas.height){
+if(bird.velocity<0){
+bird.rotation=-0.4;
+}else{
+bird.rotation=Math.min(bird.rotation+0.04,0.7);
+}
+
+if(bird.y+bird.radius>canvas.height || bird.y-bird.radius<0){
 state="gameover";
 }
 }
 
-function drawText(text,size,y){
+function drawUI(){
 ctx.fillStyle="#000";
-ctx.font=size+"px Arial";
-ctx.textAlign="center";
-ctx.fillText(text,canvas.width/2,y);
+ctx.font="22px Arial";
+ctx.fillText("Score: "+score,20,40);
+ctx.fillText("Level: "+level,20,75);
+}
+
+function drawStart(){
+ctx.fillStyle="#000";
+ctx.font="30px Arial";
+ctx.fillText("Flappy Bird",canvas.width/2-90,canvas.height/2);
+ctx.font="20px Arial";
+ctx.fillText("Tap to Start",canvas.width/2-60,canvas.height/2+40);
+}
+
+function drawGameOver(){
+ctx.fillStyle="#000";
+ctx.font="32px Arial";
+ctx.fillText("Game Over",canvas.width/2-90,canvas.height/2);
+ctx.font="20px Arial";
+ctx.fillText("Tap to Restart",canvas.width/2-80,canvas.height/2+40);
 }
 
 function gameLoop(){
 ctx.clearRect(0,0,canvas.width,canvas.height);
 
 if(state==="start"){
-drawText("Flappy Bird",32,canvas.height/2);
-drawText("Tap to Start",20,canvas.height/2+40);
+drawStart();
 }
 else if(state==="playing"){
 updateBird();
 updatePipes();
 drawPipes();
 drawBird();
-ctx.fillText("Score: "+score,20,40);
+drawUI();
 frame++;
 }
 else if(state==="gameover"){
-drawText("Game Over",30,canvas.height/2);
-drawText("Score: "+score,20,canvas.height/2+40);
-drawText("Tap to Restart",18,canvas.height/2+80);
+drawGameOver();
+drawUI();
 }
 
 requestAnimationFrame(gameLoop);
@@ -189,7 +221,7 @@ if(state==="start"){
 resetGame();
 }
 else if(state==="playing"){
-bird.velocity = jump;
+bird.velocity=jump;
 }
 else if(state==="gameover"){
 state="start";
@@ -202,6 +234,9 @@ flap();
 },{passive:false});
 
 window.addEventListener("click", flap);
+document.addEventListener("keydown", e=>{
+if(e.code==="Space") flap();
+});
 
 gameLoop();
 </script>
